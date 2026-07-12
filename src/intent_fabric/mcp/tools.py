@@ -7,7 +7,7 @@ from typing import Any
 from intent_fabric.approvals import ApprovalPackageGenerator
 from intent_fabric.mcp.schema import envelope, unwrap_payload
 from intent_fabric.policies import PolicyEngine
-from intent_fabric.planning import RuleBasedPlanner
+from intent_fabric.planning import RuleBasedPlanner, build_planner
 from intent_fabric.serde import (
     parse_evidence_package_reference,
     parse_intent_request,
@@ -29,7 +29,7 @@ class IntentFabricMCPTools:
         approval_generator: ApprovalPackageGenerator | None = None,
         simulator: SimulationExecutor | None = None,
     ) -> None:
-        self._planner = planner or RuleBasedPlanner()
+        self._planner = planner or build_planner() or RuleBasedPlanner()
         self._policy_engine = policy_engine or PolicyEngine()
         self._approval_generator = approval_generator or ApprovalPackageGenerator()
         self._simulator = simulator or SimulationExecutor()
