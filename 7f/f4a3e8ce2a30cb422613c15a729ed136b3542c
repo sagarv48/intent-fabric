@@ -1,0 +1,106 @@
+src/intent_fabric/mcp/schema.py
+  s_1357f4f95d0379::t_de6dd1e19ec1b2 1-21
+src/intent_fabric/policies/__init__.py
+  s_1357f4f95d0379::t_e0f14ae11bb77a 1-5
+src/intent_fabric/simulation/executor.py
+  s_1357f4f95d0379::t_7ebb4c365f77ae 1-45
+tests/conftest.py
+  s_1357f4f95d0379::t_0f4811aa7676fb 1-11
+src/intent_fabric/mcp/tools.py
+  s_1357f4f95d0379::t_00336ccd12e74e 5-6,8,41,45,47-48,50,57-59,65,71-72,76,78
+  s_1357f4f95d0379::t_867789672c4388 1-4,7,9-40,42-44,46,49,51-56,60-64,66-70,73-75,77
+src/intent_fabric/contracts/schema.py
+  s_1357f4f95d0379::t_9abbe721df12b5 1-22
+requirements.txt
+  s_1357f4f95d0379::t_200807f68af719 1-3
+src/intent_fabric/models.py
+  s_1357f4f95d0379::t_b40c6164ddbff3 1-99
+tests/test_mcp_tools.py
+  s_1357f4f95d0379::t_4c860948245b2b 1-2,4-30
+  s_1357f4f95d0379::t_471714940196f9 3,31-35
+docs/release-process.md
+  s_1357f4f95d0379::t_12f1e4cfcf2b36 1-28
+src/intent_fabric/planning/interfaces.py
+  s_1357f4f95d0379::t_1150cd1df915cf 1-14
+docs/README.md
+  s_1357f4f95d0379::t_0d73aac0a2eef9 1-11
+.github/workflows/ci.yml
+  s_1357f4f95d0379::t_b396acaa0ede78 1-24
+src/intent_fabric/planning/__init__.py
+  s_1357f4f95d0379::t_abf90b3369698e 1-6
+CHANGELOG.md
+  s_1357f4f95d0379::t_fc77ad8df96878 1-22
+src/intent_fabric/intent/__init__.py
+  s_1357f4f95d0379::t_4502f71483dd43 1
+src/intent_fabric/contracts/__init__.py
+  s_1357f4f95d0379::t_10ea0ce18402e9 1-5
+docs/AIPromptForImplementation.md
+  s_1357f4f95d0379::t_3dab86599e87fb 1-15
+tests/test_simulation.py
+  s_1357f4f95d0379::t_2783ed950d6949 1-55
+docs/policy-engine.md
+  s_1357f4f95d0379::t_f6daafa81e3e3d 1-17
+requirements-dev.txt
+  s_1357f4f95d0379::t_7120de12f9b716 1-2
+src/intent_fabric/planning/rule_based.py
+  s_1357f4f95d0379::t_fe273250a278c8 1-82
+src/intent_fabric/approvals/__init__.py
+  s_1357f4f95d0379::t_3e898423bb8d15 1-5
+src/intent_fabric/approvals/generator.py
+  s_1357f4f95d0379::t_3d8319f53b1344 1-28
+src/intent_fabric/serde.py
+  s_1357f4f95d0379::t_9eb0658e62bd43 1-118
+README.md
+  s_1357f4f95d0379::t_96d0ef5d488d28 1-2,4,9-16,21,26-46,80-87,94-99
+  s_1357f4f95d0379::t_4f9279d2f94d18 3,5-8,17-20,22-25,47-48,51-79,88-93
+  s_1357f4f95d0379::t_35dd5028977ddc 49-50,100-104
+src/intent_fabric/simulation/__init__.py
+  s_1357f4f95d0379::t_ae4362d531388c 1-5
+tests/test_policy_engine.py
+  s_1357f4f95d0379::t_5770f6b71ae90d 1-49
+tests/fixtures/intent_request.json
+  s_1357f4f95d0379::t_0c2e56879e0561 1-9
+tests/fixtures/evidence_package.json
+  s_1357f4f95d0379::t_60260c84b3aece 1-27
+src/intent_fabric/mcp/__init__.py
+  s_1357f4f95d0379::t_93ca893c6ffb3e 1-2,4-5
+  s_1357f4f95d0379::t_d71c740815c8c2 3,6
+pyproject.toml
+  s_1357f4f95d0379::t_f1991a81895a80 1-21
+docs/action-contract-schema.md
+  s_1357f4f95d0379::t_de83c57ff28b58 1-17
+src/intent_fabric/policies/engine.py
+  s_1357f4f95d0379::t_48e7b999166c6f 1-42
+docs/architecture.md
+  s_1357f4f95d0379::t_13b0eafc748fe7 1-19
+docs/simulation-only-boundary.md
+  s_1357f4f95d0379::t_2df786999aefc0 1-15
+src/intent_fabric/__init__.py
+  s_1357f4f95d0379::t_94544ca20b91f5 1-27
+docs/knowledge-fabric-integration.md
+  s_1357f4f95d0379::t_2ba9444166bc79 1-13
+docs/docs-setup.md
+  s_1357f4f95d0379::t_5aa3665f463980 1-10
+tests/test_planner.py
+  s_1357f4f95d0379::t_f4cbcddf5d4b56 1-29
+docs/approval-model.md
+  s_1357f4f95d0379::t_7db172d37791d8 1-16
+tests/test_integration_flow.py
+  s_1357f4f95d0379::t_c3a8f5b309c27d 1-39
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.12",
+  "base_commit_sha": "7ff4a3e8ce2a30cb422613c15a729ed136b3542c",
+  "prompts": {},
+  "sessions": {
+    "s_1357f4f95d0379": {
+      "agent_id": {
+        "tool": "github-copilot-cli",
+        "id": "87cfee0a-2b6a-49fd-81b4-c5ba37c59eb2",
+        "model": "auto"
+      },
+      "human_author": "kshev <VinayKumar.KsheeraSagar@in.pega.com>"
+    }
+  }
+}
