@@ -1,0 +1,3 @@
+# Runtime dependencies are managed in pyproject.toml.
+# This file is intentionally minimal to support teams that standardize on
+# requirements-driven workflows.

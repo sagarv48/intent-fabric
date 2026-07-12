@@ -1,0 +1,27 @@
+{
+  "query_text": "incident handling evidence",
+  "items": [
+    {
+      "chunk_id": 11,
+      "document_uri": "memory://playbook-1",
+      "snippet": "Open a tracking ticket for operational incidents.",
+      "score": 0.91,
+      "metadata": {
+        "section": "response"
+      }
+    },
+    {
+      "chunk_id": 12,
+      "document_uri": "memory://playbook-2",
+      "snippet": "Notify stakeholders after creating an incident record.",
+      "score": 0.88,
+      "metadata": {
+        "section": "communication"
+      }
+    }
+  ],
+  "retrieval_summary": {
+    "total_items": 2,
+    "sources": ["lexical", "vector"]
+  }
+}

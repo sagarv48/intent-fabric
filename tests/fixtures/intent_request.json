@@ -1,0 +1,9 @@
+{
+  "intent_id": "intent_fixture_001",
+  "user_request": "Create a ticket and notify stakeholders using evidence-backed plan",
+  "requested_actions": ["ticket_create", "notification_send"],
+  "risk_tolerance": "medium",
+  "metadata": {
+    "source": "fixture"
+  }
+}

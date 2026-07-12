@@ -1,0 +1,2 @@
+# Pinned development dependencies for reproducible local and CI runs.
+pytest==9.1.1
