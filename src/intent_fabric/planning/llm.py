@@ -227,18 +227,78 @@ class OpenAILLMPlanner:
         return _parse_llm_plan(raw_json, intent, evidence)
 
 
-def build_planner(planner_name: str = "") -> "OllamaLLMPlanner | OpenAILLMPlanner | None":
+def build_planner(planner_name: str = "") -> "OllamaLLMPlanner | OpenAILLMPlanner | FoundryLocalLLMPlanner | None":
     """Factory that reads INTENT_PLANNER env var and returns the right planner.
 
     Returns None to signal "use the default RuleBasedPlanner".
 
-    INTENT_PLANNER=ollama   → OllamaLLMPlanner.from_env()
-    INTENT_PLANNER=openai   → OpenAILLMPlanner.from_env()
-    (anything else)         → None (caller should use RuleBasedPlanner)
+    INTENT_PLANNER=ollama    → OllamaLLMPlanner.from_env()
+    INTENT_PLANNER=openai    → OpenAILLMPlanner.from_env()
+    INTENT_PLANNER=foundry   → FoundryLocalLLMPlanner.from_env()
+    (anything else)          → None (caller should use RuleBasedPlanner)
     """
     name = (planner_name or os.environ.get("INTENT_PLANNER", "")).lower().strip()
     if name == "ollama":
         return OllamaLLMPlanner.from_env()
     if name == "openai":
         return OpenAILLMPlanner.from_env()
+    if name == "foundry":
+        return FoundryLocalLLMPlanner.from_env()
     return None
+
+
+class FoundryLocalLLMPlanner:
+    """Calls a local Microsoft Foundry server for AI-generated plans.
+
+    Foundry Local exposes an OpenAI-compatible API — no API key required.
+    Only approved models (Phi, Mistral) should be used.
+
+    Quick-start:
+        foundry server start
+        foundry model load mistral-nemo-12b-instruct
+        export INTENT_PLANNER=foundry
+        export FOUNDRY_BASE_URL=http://127.0.0.1:61633   # optional, this is the default
+        export FOUNDRY_PLAN_MODEL=mistral-nemo-12b-instruct-generic-gpu
+
+    Environment variables:
+        FOUNDRY_BASE_URL    default: http://127.0.0.1:61633
+        FOUNDRY_PLAN_MODEL  default: mistral-nemo-12b-instruct-generic-gpu
+    """
+
+    def __init__(self, model: str, base_url: str) -> None:
+        self._model = model
+        self._base_url = base_url.rstrip("/")
+
+    @classmethod
+    def from_env(cls) -> "FoundryLocalLLMPlanner":
+        return cls(
+            model=os.environ.get(
+                "FOUNDRY_PLAN_MODEL", "mistral-nemo-12b-instruct-generic-gpu"
+            ),
+            base_url=os.environ.get("FOUNDRY_BASE_URL", "http://127.0.0.1:61633"),
+        )
+
+    def create_plan(self, intent: IntentRequest, evidence: EvidencePackageReference) -> Plan:
+        user_message = _build_user_message(intent, evidence)
+        body = json.dumps(
+            {
+                "model": self._model,
+                "messages": [
+                    {"role": "system", "content": _SYSTEM_PROMPT},
+                    {"role": "user", "content": user_message},
+                ],
+                # Foundry Local is OpenAI-compatible — no API key header needed
+                "response_format": {"type": "json_object"},
+                "temperature": 0.2,
+            }
+        ).encode("utf-8")
+        request = urllib.request.Request(
+            f"{self._base_url}/v1/chat/completions",
+            data=body,
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+        with urllib.request.urlopen(request, timeout=120) as response:
+            result = json.loads(response.read().decode("utf-8"))
+        raw_json = result["choices"][0]["message"]["content"]
+        return _parse_llm_plan(raw_json, intent, evidence)

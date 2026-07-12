@@ -79,6 +79,13 @@ def test_build_planner_returns_none_by_default(monkeypatch: pytest.MonkeyPatch) 
     assert build_planner() is None
 
 
+def test_build_planner_foundry(monkeypatch: pytest.MonkeyPatch) -> None:
+    from intent_fabric.planning.llm import FoundryLocalLLMPlanner
+    monkeypatch.setenv("INTENT_PLANNER", "foundry")
+    planner = build_planner()
+    assert isinstance(planner, FoundryLocalLLMPlanner)
+
+
 def test_build_planner_ollama(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("INTENT_PLANNER", "ollama")
     planner = build_planner()
