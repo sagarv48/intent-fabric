@@ -1,0 +1,26 @@
+src/intent_fabric/planning/llm.py
+  s_1357f4f95d0379::t_d719429a17f169 1-244
+src/intent_fabric/mcp/tools.py
+  s_1357f4f95d0379::t_a81db05761eea1 10
+  s_1357f4f95d0379::t_ba52e93814d328 32
+tests/test_llm_planner.py
+  s_1357f4f95d0379::t_7c663443055204 1-99
+src/intent_fabric/planning/__init__.py
+  s_1357f4f95d0379::t_88ab30bf6e5943 4,7
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.12",
+  "base_commit_sha": "562ca340e2cb40084fde96948afed01c12ef0005",
+  "prompts": {},
+  "sessions": {
+    "s_1357f4f95d0379": {
+      "agent_id": {
+        "tool": "github-copilot-cli",
+        "id": "87cfee0a-2b6a-49fd-81b4-c5ba37c59eb2",
+        "model": "auto"
+      },
+      "human_author": "sagarv48 <17423978+sagarv48@users.noreply.github.com>"
+    }
+  }
+}
