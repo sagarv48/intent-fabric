@@ -11,11 +11,35 @@
 
 <p align="center">
   <a href="https://github.com/sagarv48/intent-fabric/actions"><img src="https://img.shields.io/badge/CI-passing-brightgreen.svg" alt="CI Status"></a>
+  <a href="https://github.com/sagarv48/intent-fabric/releases"><img src="https://img.shields.io/badge/Release-v0.1.1-blue.svg" alt="Release"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-Apache%202.0-blue.svg" alt="License"></a>
-  <a href="https://www.python.org/downloads/"><img src="https://img.shields.io/badge/python-3.11%20%7C%203.12-blue.svg" alt="Python Versions"></a>
   <a href="https://modelcontextprotocol.io"><img src="https://img.shields.io/badge/MCP-Native%20Server-purple.svg" alt="MCP Native"></a>
-  <a href="BRANDING.md"><img src="https://img.shields.io/badge/Design%20System-Fabric%20Brand-9B51E0.svg" alt="Brand Guidelines"></a>
+  <a href="https://github.com/sagarv48/knowledge-fabric"><img src="https://img.shields.io/badge/Ecosystem-Knowledge%20Fabric-9B51E0.svg" alt="Knowledge Fabric"></a>
 </p>
+
+---
+
+## ⚡ 30-Second Quickstart
+
+```python
+from intent_fabric.planning import LLMIntentPlanner
+from intent_fabric.policies import PolicyEngine
+
+# 1. Deterministic Action Contract
+planner = LLMIntentPlanner()
+plan = planner.plan_intent(
+    user_intent="Update billing address for enterprise account 10482",
+    evidence_xml="<retrieved_evidence><item id='10482'>Tier: Enterprise</item></retrieved_evidence>"
+)
+
+# 2. Out-of-Band Policy Inspection
+engine = PolicyEngine.from_yaml("config/policy_rules.yaml")
+decision = engine.evaluate(plan)
+
+# 3. Cryptographic HMAC Token for Human Approver
+if decision.requires_approval:
+    print(f"Approval Token (HMAC-SHA256): {decision.hmac_signature}")
+```
 
 ---
 
