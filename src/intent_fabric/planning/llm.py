@@ -268,10 +268,10 @@ class GeminiLLMPlanner:
         self._api_key = api_key
 
     @classmethod
-    def from_env(cls) -> "GeminiLLMPlanner":
+    def from_env(cls) -> GeminiLLMPlanner:
         api_key = os.environ.get("GEMINI_API_KEY", "")
         if not api_key:
-            raise EnvironmentError("GEMINI_API_KEY environment variable is required")
+            raise OSError("GEMINI_API_KEY environment variable is required")
         return cls(
             model=os.environ.get("GEMINI_PLAN_MODEL", "gemini-2.0-flash"),
             api_key=api_key,
@@ -306,7 +306,7 @@ class GeminiLLMPlanner:
 
 def build_planner(
     planner_name: str = "",
-) -> "OllamaLLMPlanner | OpenAILLMPlanner | FoundryLocalLLMPlanner | GeminiLLMPlanner | None":
+) -> OllamaLLMPlanner | OpenAILLMPlanner | FoundryLocalLLMPlanner | GeminiLLMPlanner | None:
     """Factory that reads INTENT_PLANNER env var and returns the right planner.
 
     Returns None to signal "use the default RuleBasedPlanner (regex-based)".
@@ -367,7 +367,7 @@ class FoundryLocalLLMPlanner:
         self._base_url = base_url.rstrip("/")
 
     @classmethod
-    def from_env(cls) -> "FoundryLocalLLMPlanner":
+    def from_env(cls) -> FoundryLocalLLMPlanner:
         return cls(
             model=os.environ.get(
                 "FOUNDRY_PLAN_MODEL", "mistral-nemo-12b-instruct-generic-gpu"

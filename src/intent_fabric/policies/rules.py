@@ -102,8 +102,10 @@ class PolicyRuleSet:
         if not is_valid_action_syntax(normalized):
             return (
                 RuleDecision.DENY,
-                f"Security violation: action type '{action_type!r}' failed action syntax validation. "
-                "Action types must match ^[a-zA-Z0-9_.:-]{1,128}$ with no path traversal.",
+                (
+                    f"Security violation: action type '{action_type!r}' failed action syntax validation. "
+                    "Action types must match ^[a-zA-Z0-9_.:-]{1,128}$ with no path traversal."
+                ),
             )
 
         matching = [
