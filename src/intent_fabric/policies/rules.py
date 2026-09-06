@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import fnmatch
+import os
+import re
 from dataclasses import dataclass, field
 from enum import Enum
 
@@ -49,9 +51,6 @@ class PolicyRule:
                     return False
         return True
 
-
-import os
-import re
 
 # Supports enterprise namespaced actions, e.g. "jira:ticket_create", "aws.s3:put_object", "slack:send-notification"
 _DEFAULT_ACTION_SYNTAX_REGEX = re.compile(r"^[a-zA-Z0-9_.:-]{1,128}$")
