@@ -6,7 +6,7 @@
 
 <p align="center">
   <strong>Vendor-neutral, policy-governed agent planning and approval framework.</strong><br>
-  Deterministic Action Contracts &bull; YAML Policy Engine &bull; Human-in-the-Loop Approval Packages &bull; MCP-Native
+  Deterministic Action Contracts &bull; Declarative YAML Policy Engine &bull; Cryptographic HMAC Approvals &bull; Indirect Injection Defense &bull; MCP-Native
 </p>
 
 <p align="center">
@@ -19,76 +19,110 @@
 
 ---
 
-## Why Intent Fabric?
+## The Autonomous Agent Fear Factor: Why CTOs Block AI Deployment
 
-Most autonomous AI agent architectures jump directly from a user prompt to executing API calls and modifying production state. In enterprise, healthcare, and finance, this is an unacceptable operational and security risk.
+Enterprise engineering and security leaders want the productivity of autonomous AI agents, but they cannot accept the catastrophic risk of unconstrained execution. If an AI agent hallucinates an unauthorized refund, deletes a database table, or leaks confidential customer records, the enterprise bears full legal and financial liability.
 
-| Risky Traditional AI Agents | Intent Fabric Governance Architecture |
+| Unconstrained Autonomous Agents | Intent Fabric Governance Architecture |
 | :--- | :--- |
-| **Black-Box Execution**: The LLM calls external APIs with zero intermediate policy inspection. | **Deterministic Action Contracts**: Every proposed action is converted into an explicit, auditable `PlanStep` before anything can execute. |
-| **Hardcoded Guardrails**: Safety rules are embedded in brittle prompts or hidden inside Python code. | **YAML-Driven Policy Engine**: Extensible policy rules with glob patterns, priorities, and runtime hot-reloading. Zero code changes to update policies. |
-| **No Approval State**: If an action is risky, the entire agent run crashes or blindly proceeds. | **Structured Approval Packages**: Generates structured, tamper-evident approval requests (`requires_approval`) routed to human reviewers in Slack, Jira, or ServiceNow. |
-| **Hallucinated Actions**: Agents invent arbitrary parameters without grounding in verified documents. | **Evidence-Grounded Planning**: Planners ingest verified `EvidencePackage` objects from [Knowledge Fabric](https://github.com/sagarv48/knowledge-fabric) to ground every step in cited truth. |
-| **Vendor Lock-In**: Frameworks tie your planning and agent loops to proprietary cloud APIs. | **Local & Multi-Cloud Planner Support**: Defaults to Ollama for free, private, local planning. OpenAI, Gemini, and Azure AI Foundry are equal, drop-in alternatives. |
+| **Black-Box API Execution**: The LLM calls external tools and APIs with zero intermediate policy inspection or schema enforcement. | **Deterministic Action Contracts**: Every proposed action is converted into an explicit, auditable `PlanStep` with strict parameter typing before anything can execute. |
+| **Brittle Prompt Guardrails**: Safety rules are embedded in natural language system prompts (*"Please do not delete data"*), easily bypassed by jailbreaks. | **Out-of-Band YAML Policy Engine**: Hard deterministic evaluation rules with glob patterns, priority weighting, and hot-reloading that evaluate actions independently of the LLM. |
+| **Binary All-or-Nothing Execution**: If an action is risky, the entire agent run crashes or blindly proceeds without oversight. | **Human-in-the-Loop Approval Packages**: Generates structured, tamper-evident approval requests (`requires_approval`) routed to human reviewers in Slack, Jira, or the Visual Admin Console. |
+| **Vulnerable to Indirect Prompt Injection**: Adversarial text hidden inside retrieved documents hijacks the agent's planning logic. | **XML Evidence Sandboxing**: Strict evidence boundaries (`<retrieved_evidence>`) isolate untrusted data from instructions, backed by syntax sanitization (`^[a-zA-Z0-9_.:-]{1,128}$`). |
+| **Non-Repudiation Failure**: No cryptographic proof of who authorized a production state mutation. | **HMAC-SHA256 Cryptographic Tokens**: Every human approval decision generates a signed, tamper-evident cryptographic token verified by execution adapters. |
+| **Vendor Lock-In**: Frameworks tie planning loops to proprietary cloud APIs. | **Local & Multi-Cloud Planner Support**: Runs locally and privately with Ollama (Llama 3, Mistral), with drop-in support for OpenAI, Gemini, and Azure AI Foundry. |
 
 ---
 
-## Architecture
+## Architecture: Defense-in-Depth Governance
 
 ```mermaid
 flowchart TB
-    subgraph Input ["1. INTENT & EVIDENCE"]
+    subgraph Input ["1. INTENT & EVIDENCE SANDBOX"]
         UserReq["User Intent Request\n'Create emergency access review for jdoe'"]
-        Evidence["Knowledge Fabric Evidence Package\n(Citations & Relevant Policy Snippets)"]
+        Evidence["Knowledge Fabric Evidence Package\n(Encapsulated in <retrieved_evidence> tags)"]
     end
 
-    subgraph Planning ["2. PLANNER (LOCAL OR CLOUD)"]
+    subgraph Planning ["2. DETERMINISTIC PLANNER"]
         UserReq --> Planner{"Intent Planner\n(Ollama / OpenAI / Gemini / Foundry)"}
         Evidence --> Planner
         Planner --> Plan["Deterministic Plan\n• Step 1: Query user profile [analysis_review]\n• Step 2: Create ticket [ticket_create]\n• Step 3: Dispatch alert [notification_send]"]
     end
 
-    subgraph Governance ["3. POLICY EVALUATION ENGINE"]
-        Rules[("YAML Policy Rules\n(policy_rules.yaml)\n• Globs: ticket_*, db_*\n• Priorities & Conditions")] --> Engine["Policy Engine\n(Worst-Outcome Aggregation)"]
+    subgraph Governance ["3. OUT-OF-BAND POLICY ENGINE"]
+        Rules[("YAML Policy Rules\n(policy_rules.yaml)\n• Globs: ticket_*, db_*\n• Priorities & Conditions")] --> Engine["Policy Evaluation Engine\n(Worst-Outcome Aggregation)"]
         Plan --> Engine
         Engine --> Decision{"Policy Decision"}
     end
 
-    subgraph Outcomes ["4. GOVERNANCE OUTCOME"]
+    subgraph Outcomes ["4. GOVERNANCE DISPATCH & AUDIT"]
         Decision -- "ALLOW" --> Sim["Simulation & Direct Safe Dispatch"]
-        Decision -- "REQUIRES_APPROVAL" --> ApprovalPkg["Approval Package\n• Plan ID & Step Details\n• Exact policy violation reasons\n• Routed to Human Reviewer"]
-        Decision -- "DENY" --> Denied["Immediate Rejection\n(Audit Log Recorded)"]
+        Decision -- "REQUIRES_APPROVAL" --> ApprovalPkg["Approval Package (HMAC Signed)\n• Plan ID & Step Details\n• Exact policy violation reasons\n• Routed to Human Reviewer"]
+        Decision -- "DENY" --> Denied["Immediate Hard Rejection\n(Audit Log Recorded)"]
+        ApprovalPkg --> Console["Visual Admin Console / Slack / Jira"]
+        Console -- "Human Approved" --> Sig["HMAC-SHA256 Token"]
+        Sig --> Exec["Enterprise Adapter Execution Gate"]
     end
 ```
 
 ---
 
+## Industry Governance Blueprints
+
+### 1. Financial Services & Banking
+* **Scenario**: Automated AML (Anti-Money Laundering) transaction review and account holds.
+* **Governance Rule**: Analysis and pattern matching (`analysis_aml_*`) are pre-approved (`allow`). Any fund freeze or account restriction (`account_hold_*`) automatically triggers `REQUIRES_APPROVAL` routed to the Compliance Officer with cited transaction evidence.
+
+### 2. Healthcare & Clinical Operations
+* **Scenario**: Clinical workflow triage and medication order validation.
+* **Governance Rule**: Medical protocol retrieval is pre-approved. Any order dispatched to the pharmacy EHR (`ehr_rx_order`) requires an attending physician's cryptographic HMAC sign-off.
+
+### 3. Cloud Infrastructure & DevOps
+* **Scenario**: Automated SRE alert remediation on Kubernetes clusters.
+* **Governance Rule**: Read-only log inspection (`k8s_get_*`, `k8s_describe_*`) executes autonomously. Mutative actions (`k8s_restart_*`, `helm_rollback`) require senior on-call approval. Destructive actions (`k8s_delete_namespace`, `db_drop_*`) are blocked immediately (`deny`).
+
+---
+
+## Cryptographic Non-Repudiation (HMAC-SHA256)
+
+When an action requires human review, Intent Fabric generates a structured `ApprovalPackage`. Once approved by an authorized reviewer, an HMAC-SHA256 signature is generated:
+
+```json
+{
+  "approval_id": "appr_87f2e1a9",
+  "plan_id": "plan_98234",
+  "action": "ticket_create",
+  "decision": "Approved",
+  "reviewer": "secops-lead@company.com",
+  "comment": "Verified emergency request against change ticket CHG-4091",
+  "timestamp": 1725624000,
+  "algorithm": "HMAC-SHA256",
+  "signature": "3b7f8c92a1e4d560718294a5c6d7e8f90123456789abcdef0123456789abcdef"
+}
+```
+
+Downstream enterprise execution adapters verify this cryptographic token before committing any mutative state changes, guaranteeing full auditability and non-repudiation for SOC 2 Type II compliance.
+
+---
+
 ## Quickstart
 
-### 1. Install
-
-**As a Python package (Recommended):**
+### 1. Install via PyPI
 ```bash
 pip install intent-fabric
 ```
 
-**For local development / contributing:**
+### 2. Select Planning Backend
+Choose between local, zero-cost inference or enterprise cloud providers:
 ```bash
-git clone https://github.com/sagarv48/intent-fabric.git
-cd intent-fabric
-python3 -m pip install -e ".[dev]"
-```
-
-### 2. Configure Planner
-Select your preferred planner via environment variable:
-```bash
-# Recommended: Local, private, free with Ollama
+# Option A: 100% Local & Private (Recommended)
 export INTENT_PLANNER=ollama
 ollama pull llama3
 
-# Or cloud options:
+# Option B: Enterprise Cloud APIs
 # export INTENT_PLANNER=openai; export OPENAI_API_KEY=sk-...
 # export INTENT_PLANNER=gemini; export GEMINI_API_KEY=...
+# export INTENT_PLANNER=foundry; export FOUNDRY_BASE_URL=http://127.0.0.1:61633
 ```
 
 ### 3. Python Usage Example
@@ -97,127 +131,100 @@ from intent_fabric.mcp import IntentFabricMCPTools
 
 tools = IntentFabricMCPTools()
 
-# 1. Create a structured plan grounded in evidence
+# 1. Generate an evidence-grounded plan
 plan = tools.create_plan_from_evidence(
     intent_request={
         "intent_id": "intent_001",
-        "user_request": "Create an emergency access ticket and notify the SOC team",
-        "requested_actions": ["ticket_create", "notification_send"],
+        "user_request": "Investigate cluster alert and restart unhealthy pods",
+        "requested_actions": ["k8s_get_pods", "k8s_restart_pod"],
     },
     evidence_package={
-        "query_text": "emergency access procedure",
+        "query_text": "runbook for pod crashloop",
         "items": [
             {
                 "chunk_id": 101,
-                "document_uri": "policy://access_control.md",
-                "snippet": "Break-glass requires an audit ticket within 1 hour.",
-                "score": 0.89,
+                "document_uri": "runbooks://k8s-triage.md",
+                "snippet": "If pod status is CrashLoopBackOff for >15m, restart deployment and notify SRE.",
+                "score": 0.94,
             }
         ],
     },
 )
 
-# 2. Validate against active YAML policy rules
+# 2. Evaluate against declarative YAML policy rules
 decision = tools.validate_plan(plan)
-print(f"Decision: {decision.decision_type.name}")  # REQUIRES_APPROVAL
+print(f"Policy Decision: {decision.decision_type.name}")
+# Output: REQUIRES_APPROVAL
 
 # 3. Create approval package for human review
 if decision.decision_type.name == "REQUIRES_APPROVAL":
-    approval = tools.create_approval_package(plan, decision, requested_by="analyst")
+    approval = tools.create_approval_package(plan, decision, requested_by="oncall-agent")
     print(f"Approval ID: {approval.approval_id}")
-    print(f"Reasons: {approval.reasons}")
+    print(f"Policy Justification: {approval.reasons}")
 ```
 
 ---
 
-## YAML Policy Rules Configuration
+## Declarative YAML Policy Rules
 
-Policies are defined declaratively in `config/policy_rules.yaml`. You can customize rules without touching any code:
+Policies live in `config/policy_rules.yaml` and support live hot-reloading without process restarts:
 
 ```yaml
 rules:
-  # Deny all destructive operations immediately
-  - action_pattern: "db_drop"
+  # Hard Deny: Destructive database and infrastructure mutations
+  - action_pattern: "db_drop*"
     decision: "deny"
-    reason: "Destructive database operations are never permitted."
+    reason: "Destructive database operations are strictly prohibited."
     priority: 100
 
-  - action_pattern: "external_write"
+  - action_pattern: "k8s_delete_*"
     decision: "deny"
-    reason: "Direct external write outside adapter sandbox is prohibited."
+    reason: "Namespace or cluster deletion is strictly prohibited."
     priority: 100
 
-  # Require human approval for external communications and ticket creation
+  # Require Human Approval: Write and external communication actions
   - action_pattern: "ticket_*"
     decision: "requires_approval"
-    reason: "Ticket creation requires human review before execution."
+    reason: "External ticket modifications require human review."
     priority: 50
 
-  - action_pattern: "notification_send"
+  - action_pattern: "k8s_restart_*"
     decision: "requires_approval"
-    reason: "User notifications require human review."
+    reason: "Production pod restarts require on-call authorization."
     priority: 50
 
-  # Safe read-only analysis is pre-approved
+  # Pre-Approved: Safe read-only inspection
   - action_pattern: "analysis_*"
     decision: "allow"
-    reason: "Read-only analysis actions are pre-approved."
+    reason: "Read-only inspection and diagnosis are pre-approved."
     priority: 10
 
 default_decision: "requires_approval"
 ```
 
-### Hot Reloading
-Set `INTENT_POLICY_RULES=/path/to/policy_rules.yaml`. The engine monitors file modification timestamps (`mtime`) and hot-reloads rule changes on the fly with zero process downtime.
-
----
-
-## Visual Governance & Review Console
-
-Review pending approval packages and test policy rules interactively using the web management console:
-
-```bash
-# Starts the governance console at http://localhost:8080/
-knowledge-fabric-ui --port 8080
-```
-
-- **Approval Queue**: View pending agent actions, ground-truth evidence citations, and authorize or reject actions with audit comments.
-- **Policy Sandbox**: Test arbitrary action strings (e.g., `db_drop_table`, `ticket_create`) against active YAML rules with instant evaluation.
-
 ---
 
 ## Model Context Protocol (MCP) Tools
 
-Intent Fabric exposes planning and governance tools conforming to the MCP standard:
+Intent Fabric exposes planning and governance tools conforming to the open MCP specification:
 
 | Tool Name | Parameters | Description |
 | :--- | :--- | :--- |
-| `create_plan_from_evidence` | `intent_request` (dict), `evidence_package` (dict) | Generates a structured multi-step plan grounded in provided evidence. |
-| `validate_plan` | `plan` (dict) | Evaluates a plan against the active policy rules and returns a decision (`allow`, `deny`, `requires_approval`). |
-| `create_approval_package` | `plan` (dict), `decision` (dict), `requested_by` (str) | Constructs an audit-ready approval payload for routing to human approvers. |
-| `simulate_plan` | `plan` (dict), `decision` (dict) | Simulates plan execution with zero external side effects and records simulated traces. |
+| `create_plan_from_evidence` | `intent_request` (dict), `evidence_package` (dict) | Generates a structured multi-step plan grounded in provided evidence citations. |
+| `validate_plan` | `plan` (dict) | Evaluates all plan steps against active policy rules and returns a consolidated decision. |
+| `create_approval_package` | `plan` (dict), `decision` (dict), `requested_by` (str) | Assembles a tamper-evident approval payload for human sign-off. |
+| `simulate_plan` | `plan` (dict), `decision` (dict) | Simulates plan execution with zero external side effects and records state traces. |
 
 ---
 
 ## End-to-End Stack Integration
 
-Intent Fabric is designed to sit between **Knowledge Fabric** (evidence retrieval) and **Enterprise Adapters** (runtime action execution):
-
-1. **[Knowledge Fabric](https://github.com/sagarv48/knowledge-fabric)**: Ingests documents, indexes with pgvector, and returns ranked evidence.
-2. **Intent Fabric** *(this repository)*: Turns intent + evidence into safe, policy-validated action plans.
-3. **Enterprise Adapters**: Executes approved action contracts against Jira, ServiceNow, Slack, or GitHub.
-
-See the complete runnable walkthrough in [`examples/04-end-to-end-with-intent`](https://github.com/sagarv48/knowledge-fabric/tree/main/examples/04-end-to-end-with-intent).
+Intent Fabric sits at the center of the enterprise agent architecture:
+1. **[Knowledge Fabric](https://github.com/sagarv48/knowledge-fabric)**: Supplies verified ground-truth evidence packages.
+2. **Intent Fabric** *(this repository)*: Converts intent + evidence into deterministic, policy-checked action plans.
+3. **[Enterprise Adapters](https://github.com/sagarv48/knowledge-fabric-enterprise-adapters)**: Validates HMAC signatures and executes authorized actions against Jira, ServiceNow, Slack, or GitHub.
 
 ---
-
-## Contributing
-
-Contributions are welcome! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for testing guidelines and development setup.
-
-## Security
-
-See [SECURITY.md](SECURITY.md) for vulnerability reporting guidelines.
 
 ## License
 
