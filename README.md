@@ -66,14 +66,16 @@ flowchart TB
 ## Quickstart
 
 ### 1. Install
+
+**As a Python package (Recommended):**
+```bash
+pip install intent-fabric
+```
+
+**For local development / contributing:**
 ```bash
 git clone https://github.com/sagarv48/intent-fabric.git
 cd intent-fabric
-
-# Install package
-python3 -m pip install -e .
-
-# Or with dev dependencies
 python3 -m pip install -e ".[dev]"
 ```
 

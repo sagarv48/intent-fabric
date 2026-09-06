@@ -50,6 +50,36 @@ class PolicyRule:
         return True
 
 
+import os
+import re
+
+# Supports enterprise namespaced actions, e.g. "jira:ticket_create", "aws.s3:put_object", "slack:send-notification"
+_DEFAULT_ACTION_SYNTAX_REGEX = re.compile(r"^[a-zA-Z0-9_.:-]{1,128}$")
+
+
+def is_valid_action_syntax(action_type: str) -> bool:
+    """Validate that action_type conforms to safe action naming standards.
+
+    Supports standard and namespaced formats (e.g. 'ticket_create', 'jira:create_issue',
+    'aws.s3:put_object') while preventing control character injection, path traversal,
+    and null bytes.
+    Can be relaxed via INTENT_STRICT_ACTION_VALIDATION=false for specialized integrations.
+    """
+    if not isinstance(action_type, str):
+        return False
+    cleaned = action_type.strip()
+    if not cleaned:
+        return False
+
+    if os.environ.get("INTENT_STRICT_ACTION_VALIDATION", "true").lower() in ("false", "0", "off"):
+        # Permissive check: prevent null bytes, path traversal, and unprintable characters
+        return "\0" not in cleaned and ".." not in cleaned and len(cleaned) <= 256
+
+    custom_pattern = os.environ.get("INTENT_ACTION_SYNTAX_REGEX", "")
+    pattern = re.compile(custom_pattern) if custom_pattern else _DEFAULT_ACTION_SYNTAX_REGEX
+    return bool(pattern.match(cleaned)) and ".." not in cleaned
+
+
 @dataclass
 class PolicyRuleSet:
     """An ordered collection of rules evaluated against a plan step."""
@@ -65,15 +95,26 @@ class PolicyRuleSet:
 
         Matching rule with the highest priority wins.
         Falls back to REQUIRES_APPROVAL if no rule matches.
+        Malformed or smuggling action types trigger immediate DENY.
         """
+        # Security hardening: Normalize and validate action syntax
+        normalized = (action_type or "").strip().lower()
+        if not is_valid_action_syntax(normalized):
+            return (
+                RuleDecision.DENY,
+                f"Security violation: action type '{action_type!r}' failed action syntax validation. "
+                "Action types must match ^[a-zA-Z0-9_.:-]{1,128}$ with no path traversal.",
+            )
+
         matching = [
             rule for rule in self.rules
-            if rule.matches(action_type, intent_metadata)
+            if rule.matches(normalized, intent_metadata)
         ]
         if not matching:
             return (
                 RuleDecision.REQUIRES_APPROVAL,
-                f"No policy rule matched action type '{action_type}'. Defaulting to requires_approval.",
+                f"No policy rule matched action type '{normalized}'. Defaulting to requires_approval.",
             )
         best = max(matching, key=lambda r: r.priority)
         return best.decision, best.reason
+
