@@ -99,6 +99,21 @@ def test_build_planner_openai_raises_without_key(monkeypatch: pytest.MonkeyPatch
         build_planner()
 
 
+def test_build_planner_gemini_raises_without_key(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("INTENT_PLANNER", "gemini")
+    monkeypatch.delenv("GEMINI_API_KEY", raising=False)
+    with pytest.raises(EnvironmentError, match="GEMINI_API_KEY"):
+        build_planner()
+
+
+def test_build_planner_gemini(monkeypatch: pytest.MonkeyPatch) -> None:
+    from intent_fabric.planning.llm import GeminiLLMPlanner
+    monkeypatch.setenv("INTENT_PLANNER", "gemini")
+    monkeypatch.setenv("GEMINI_API_KEY", "fake-key")
+    planner = build_planner()
+    assert isinstance(planner, GeminiLLMPlanner)
+
+
 def test_mcp_tools_falls_back_to_rule_based_when_no_planner_env(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.delenv("INTENT_PLANNER", raising=False)
     from intent_fabric.mcp.tools import IntentFabricMCPTools

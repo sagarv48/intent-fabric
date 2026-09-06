@@ -1,42 +1,60 @@
-"""Policy engine for plan validation."""
+"""Policy engine for plan validation — YAML-driven, extensible."""
 
 from __future__ import annotations
 
 from intent_fabric.models import Plan, PolicyDecision, PolicyDecisionType
-
-_DENY_ACTION_TYPES = {"runtime_connector", "external_write"}
-_REQUIRES_APPROVAL_ACTION_TYPES = {"ticket_create", "document_update", "notification_send"}
+from intent_fabric.policies.loader import PolicyRuleLoader
+from intent_fabric.policies.rules import RuleDecision
 
 
 class PolicyEngine:
-    """Applies simple allow/deny/requires_approval rules to a plan."""
+    """Applies configurable policy rules to a plan.
+
+    Rules are loaded from YAML (see PolicyRuleLoader) and evaluated per action
+    in the plan. The worst outcome across all steps determines the final decision:
+        any DENY              → PolicyDecisionType.DENY
+        any REQUIRES_APPROVAL → PolicyDecisionType.REQUIRES_APPROVAL
+        all ALLOW             → PolicyDecisionType.ALLOW
+
+    Hot-reload: the rule file is reloaded automatically when its mtime changes,
+    so policy updates take effect on the next evaluate() call without a restart.
+
+    Configuration:
+        Default rules are built-in and work without any configuration.
+        To customise rules, set INTENT_POLICY_RULES=/path/to/policy_rules.yaml
+        See config/policy_rules.yaml for a commented reference.
+    """
+
+    def __init__(self, rules_path: str | None = None) -> None:
+        self._loader = PolicyRuleLoader(rules_path=rules_path)
 
     def evaluate(self, plan: Plan) -> PolicyDecision:
+        ruleset = self._loader.get()
         reasons: list[str] = []
-        action_types = [step.action_contract.action_type for step in plan.steps]
+        worst = RuleDecision.ALLOW
 
-        if any(action in _DENY_ACTION_TYPES for action in action_types):
-            reasons.append("Plan contains action types outside simulation boundary.")
-            return PolicyDecision(
-                plan_id=plan.plan_id,
-                decision=PolicyDecisionType.DENY,
-                reasons=reasons,
-                requires_approval=False,
-            )
+        for step in plan.steps:
+            action_type = step.action_contract.action_type
+            # Pass risk context from the action contract parameters for conditional rules
+            intent_metadata = step.action_contract.parameters or {}
+            decision, reason = ruleset.evaluate(action_type, intent_metadata)
+            reasons.append(f"[{action_type}] {reason}")
 
-        if any(action in _REQUIRES_APPROVAL_ACTION_TYPES for action in action_types):
-            reasons.append("Plan contains simulated user-impacting actions that require approval.")
-            return PolicyDecision(
-                plan_id=plan.plan_id,
-                decision=PolicyDecisionType.REQUIRES_APPROVAL,
-                reasons=reasons,
-                requires_approval=True,
-            )
+            if decision == RuleDecision.DENY:
+                worst = RuleDecision.DENY
+                break  # DENY is absolute — no need to evaluate further steps
+            if decision == RuleDecision.REQUIRES_APPROVAL:
+                worst = RuleDecision.REQUIRES_APPROVAL
 
-        reasons.append("Plan is within simulation-only policy boundaries.")
+        decision_type = {
+            RuleDecision.ALLOW: PolicyDecisionType.ALLOW,
+            RuleDecision.REQUIRES_APPROVAL: PolicyDecisionType.REQUIRES_APPROVAL,
+            RuleDecision.DENY: PolicyDecisionType.DENY,
+        }[worst]
+
         return PolicyDecision(
             plan_id=plan.plan_id,
-            decision=PolicyDecisionType.ALLOW,
+            decision=decision_type,
             reasons=reasons,
-            requires_approval=False,
+            requires_approval=(decision_type == PolicyDecisionType.REQUIRES_APPROVAL),
         )

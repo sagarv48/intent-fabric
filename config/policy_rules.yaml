@@ -1,0 +1,60 @@
+# Policy rules for intent-fabric — YAML-configurable, hot-reloadable.
+#
+# To use a custom policy file, set:
+#   INTENT_POLICY_RULES=/path/to/your/policy_rules.yaml
+#
+# Rules are evaluated per plan step. The worst outcome across all steps wins:
+#   any DENY              → plan is rejected entirely
+#   any REQUIRES_APPROVAL → plan is queued for human approval
+#   all ALLOW             → plan executes immediately
+#
+# Priority: higher value wins when multiple rules match the same action_type.
+# Default priority is 0. Use 100+ for hard-deny rules that must never be overridden.
+#
+# action_pattern supports fnmatch globs: "ticket_*", "db_*", "*"
+#
+# Optional per-rule conditions match against the action contract's parameters dict.
+# Example: only deny ticket_create when risk_tolerance is "high":
+#   conditions:
+#     risk_tolerance: high
+
+rules:
+  # ── Hard denies (priority 100) ────────────────────────────────────────────
+  - action_pattern: "db_drop"
+    decision: deny
+    reason: "Destructive database operations are never permitted."
+    priority: 100
+
+  - action_pattern: "external_write"
+    decision: deny
+    reason: "Writes to external systems outside simulation boundary are denied."
+    priority: 100
+
+  - action_pattern: "runtime_connector"
+    decision: deny
+    reason: "Direct runtime connector access is outside simulation boundary."
+    priority: 100
+
+  # ── Requires approval ─────────────────────────────────────────────────────
+  - action_pattern: "ticket_*"
+    decision: requires_approval
+    reason: "Ticket creation requires human review before execution."
+
+  - action_pattern: "notification_send"
+    decision: requires_approval
+    reason: "Notifications to users require human review."
+
+  - action_pattern: "document_update"
+    decision: requires_approval
+    reason: "Document changes require human review."
+
+  # ── Allow ─────────────────────────────────────────────────────────────────
+  - action_pattern: "analysis_review"
+    decision: allow
+    reason: "Read-only analysis is permitted without approval."
+
+  # ── Safe default (priority -1, matches anything not caught above) ─────────
+  - action_pattern: "*"
+    decision: requires_approval
+    reason: "Unknown action type defaults to requires_approval."
+    priority: -1

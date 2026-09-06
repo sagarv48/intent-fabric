@@ -227,24 +227,96 @@ class OpenAILLMPlanner:
         return _parse_llm_plan(raw_json, intent, evidence)
 
 
-def build_planner(planner_name: str = "") -> "OllamaLLMPlanner | OpenAILLMPlanner | FoundryLocalLLMPlanner | None":
+class GeminiLLMPlanner:
+    """Calls the Google Gemini API to create AI-generated plans.
+
+    Gemini 2.0 Flash is recommended: fast, generous free tier, 1M token context window
+    ideal for large enterprise document corpora.
+
+    Environment variables (required):
+        GEMINI_API_KEY       — from https://aistudio.google.com/apikey
+        GEMINI_PLAN_MODEL    default: gemini-2.0-flash
+    """
+
+    def __init__(self, model: str, api_key: str) -> None:
+        self._model = model
+        self._api_key = api_key
+
+    @classmethod
+    def from_env(cls) -> "GeminiLLMPlanner":
+        api_key = os.environ.get("GEMINI_API_KEY", "")
+        if not api_key:
+            raise EnvironmentError("GEMINI_API_KEY environment variable is required")
+        return cls(
+            model=os.environ.get("GEMINI_PLAN_MODEL", "gemini-2.0-flash"),
+            api_key=api_key,
+        )
+
+    def create_plan(self, intent: IntentRequest, evidence: EvidencePackageReference) -> Plan:
+        user_message = _build_user_message(intent, evidence)
+        body = json.dumps({
+            "contents": [
+                {
+                    "parts": [
+                        {"text": _SYSTEM_PROMPT + "\n\n" + user_message}
+                    ]
+                }
+            ],
+            "generationConfig": {
+                "temperature": 0.2,
+                "responseMimeType": "application/json",
+            },
+        }).encode("utf-8")
+        request = urllib.request.Request(
+            f"https://generativelanguage.googleapis.com/v1beta/models/{self._model}:generateContent?key={self._api_key}",
+            data=body,
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+        with urllib.request.urlopen(request, timeout=30) as response:
+            result = json.loads(response.read().decode("utf-8"))
+        raw_json = result["candidates"][0]["content"]["parts"][0]["text"]
+        return _parse_llm_plan(raw_json, intent, evidence)
+
+
+def build_planner(
+    planner_name: str = "",
+) -> "OllamaLLMPlanner | OpenAILLMPlanner | FoundryLocalLLMPlanner | GeminiLLMPlanner | None":
     """Factory that reads INTENT_PLANNER env var and returns the right planner.
 
-    Returns None to signal "use the default RuleBasedPlanner".
+    Returns None to signal "use the default RuleBasedPlanner (regex-based)".
 
-    INTENT_PLANNER=ollama    → OllamaLLMPlanner.from_env()
-    INTENT_PLANNER=openai    → OpenAILLMPlanner.from_env()
-    INTENT_PLANNER=foundry   → FoundryLocalLLMPlanner.from_env()
-    (anything else)          → None (caller should use RuleBasedPlanner)
+    Recommended for vendor-neutral local dev (no API key required):
+        INTENT_PLANNER=ollama    → OllamaLLMPlanner.from_env()
+        Quick-start: ollama pull llama3 && export INTENT_PLANNER=ollama
+
+    Cloud alternatives (all equal, choose what fits your infrastructure):
+        INTENT_PLANNER=openai    → OpenAILLMPlanner.from_env()   (requires OPENAI_API_KEY)
+        INTENT_PLANNER=gemini    → GeminiLLMPlanner.from_env()   (requires GEMINI_API_KEY)
+        INTENT_PLANNER=foundry   → FoundryLocalLLMPlanner.from_env() (local, no API key)
+
+    None / unset → RuleBasedPlanner is used (regex, no external deps, suitable for demos).
     """
+    import warnings
+
     name = (planner_name or os.environ.get("INTENT_PLANNER", "")).lower().strip()
     if name == "ollama":
         return OllamaLLMPlanner.from_env()
     if name == "openai":
         return OpenAILLMPlanner.from_env()
+    if name == "gemini":
+        return GeminiLLMPlanner.from_env()
     if name == "foundry":
         return FoundryLocalLLMPlanner.from_env()
+    if not name:
+        warnings.warn(
+            "\n\n⚠  INTENT_PLANNER is not set. Using RuleBasedPlanner (regex-based, demo quality).\n"
+            "   For real AI-generated plans set: INTENT_PLANNER=ollama (free, local, vendor-neutral).\n"
+            "   Cloud alternatives: openai, gemini, foundry.\n",
+            stacklevel=2,
+        )
     return None
+
 
 
 class FoundryLocalLLMPlanner:
