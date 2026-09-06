@@ -16,15 +16,11 @@ from intent_fabric.approvals.signing import (
     verify_approval_signature,
 )
 from intent_fabric.models import (
-    ActionContract,
     EvidenceItemReference,
     EvidencePackageReference,
     IntentRequest,
-    Plan,
-    PlanStep,
 )
 from intent_fabric.planning.llm import _build_user_message, _parse_llm_plan
-from intent_fabric.policies.engine import PolicyEngine
 from intent_fabric.policies.rules import PolicyRule, PolicyRuleSet, RuleDecision, is_valid_action_syntax
 
 
