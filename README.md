@@ -22,23 +22,37 @@
 ## ⚡ 30-Second Quickstart
 
 ```python
-from intent_fabric.planning import LLMIntentPlanner
-from intent_fabric.policies import PolicyEngine
+from intent_fabric.mcp import IntentFabricMCPTools
 
-# 1. Deterministic Action Contract
-planner = LLMIntentPlanner()
-plan = planner.plan_intent(
-    user_intent="Update billing address for enterprise account 10482",
-    evidence_xml="<retrieved_evidence><item id='10482'>Tier: Enterprise</item></retrieved_evidence>"
+tools = IntentFabricMCPTools()
+
+# 1. Create an evidence-grounded plan
+plan = tools.create_plan_from_evidence(
+    intent_request={
+        "intent_id": "intent_001",
+        "user_request": "Update billing address for enterprise account 10482",
+        "requested_actions": ["ticket_create"],
+    },
+    evidence_package={
+        "query_text": "billing address",
+        "items": [{"chunk_id": 10482, "document_uri": "crm://tier", "snippet": "Tier: Enterprise", "score": 0.95}],
+    },
 )
 
 # 2. Out-of-Band Policy Inspection
-engine = PolicyEngine.from_yaml("config/policy_rules.yaml")
-decision = engine.evaluate(plan)
+decision = tools.validate_plan(plan)
+print(f"Policy Decision: {decision['payload']['decision']}")
 
 # 3. Cryptographic HMAC Token for Human Approver
-if decision.requires_approval:
-    print(f"Approval Token (HMAC-SHA256): {decision.hmac_signature}")
+if decision["payload"]["decision"] == "requires_approval":
+    signed = tools.sign_approval(
+        approval_id="appr_10482",
+        plan_id=plan["payload"]["plan_id"],
+        step_ids=["step_1"],
+        decision="approved",
+        reviewer="secops-lead@company.com",
+    )
+    print(f"Approval Token (HMAC-SHA256): {signed['payload']['signature']}")
 ```
 
 ---
@@ -270,6 +284,8 @@ Intent Fabric exposes planning and governance tools conforming to the open MCP s
 | `validate_plan` | `plan` (dict) | Evaluates all plan steps against active policy rules and returns a consolidated decision. |
 | `create_approval_package` | `plan` (dict), `decision` (dict), `requested_by` (str) | Assembles a tamper-evident approval payload for human sign-off. |
 | `simulate_plan` | `plan` (dict), `decision` (dict) | Simulates plan execution with zero external side effects and records state traces. |
+| `sign_approval` | `approval_id` (str), `plan_id` (str), `step_ids` (list[str]), `decision` (str), `reviewer` (str), `timestamp` (str\|null) | Generates a deterministic HMAC-SHA256 non-repudiation signature over the approval decision. |
+| `health_check` | *None* | Verifies planner provider health and policy rule engine status. |
 
 ---
 
