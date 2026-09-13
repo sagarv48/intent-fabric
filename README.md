@@ -10,7 +10,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/sagarv48/intent-fabric/actions"><img src="https://img.shields.io/badge/CI-passing-brightgreen.svg" alt="CI Status"></a>
+  <a href="https://github.com/sagarv48/intent-fabric/actions"><img src="https://github.com/sagarv48/intent-fabric/actions/workflows/ci.yml/badge.svg" alt="CI Status"></a>
   <a href="https://github.com/sagarv48/intent-fabric/releases"><img src="https://img.shields.io/badge/Release-v0.1.1-blue.svg" alt="Release"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-Apache%202.0-blue.svg" alt="License"></a>
   <a href="https://modelcontextprotocol.io"><img src="https://img.shields.io/badge/MCP-Native%20Server-purple.svg" alt="MCP Native"></a>
@@ -177,15 +177,47 @@ plan = tools.create_plan_from_evidence(
 
 # 2. Evaluate against declarative YAML policy rules
 decision = tools.validate_plan(plan)
-print(f"Policy Decision: {decision.decision_type.name}")
-# Output: REQUIRES_APPROVAL
+print(f"Policy Decision: {decision['payload']['decision']}")
+# Output: requires_approval
 
 # 3. Create approval package for human review
-if decision.decision_type.name == "REQUIRES_APPROVAL":
+if decision["payload"]["decision"] == "requires_approval":
     approval = tools.create_approval_package(plan, decision, requested_by="oncall-agent")
-    print(f"Approval ID: {approval.approval_id}")
-    print(f"Policy Justification: {approval.reasons}")
+    print(f"Approval ID: {approval['payload']['approval_id']}")
+    print(f"Policy Reasons: {approval['payload']['policy_reasons']}")
+
+# 4. Cryptographically sign approval
+signed = tools.sign_approval(
+    approval_id=approval['payload']['approval_id'],
+    plan_id=plan['payload']['plan_id'],
+    step_ids=approval['payload']['step_ids'],
+    decision="approved",
+    reviewer="oncall-lead@company.com",
+)
+print(f"HMAC Signature: {signed['payload']['signature']}")
 ```
+
+### 4. FastMCP Server Transport (Stdio)
+Run Intent Fabric as an MCP server for Claude Desktop, Cursor, or autonomous AI agents:
+```bash
+# Run directly via CLI entrypoint
+intent-fabric-mcp
+
+# Or via uv
+uv run intent-fabric-mcp
+```
+
+Add to your host's MCP configuration (`claude_desktop_config.json`):
+```json
+{
+  "mcpServers": {
+    "intent-fabric": {
+      "command": "intent-fabric-mcp"
+    }
+  }
+}
+```
+
 
 ---
 

@@ -1,0 +1,92 @@
+"""MCP server entrypoint for Intent Fabric tools."""
+
+from __future__ import annotations
+
+import logging
+from typing import Any
+
+from intent_fabric.mcp.tools import IntentFabricMCPTools
+
+logger = logging.getLogger(__name__)
+
+
+def create_mcp_server(tools: IntentFabricMCPTools | None = None) -> Any:
+    """Create FastMCP server with intent planning, policy evaluation, and approval tools."""
+    try:
+        from mcp.server.fastmcp import FastMCP
+    except (ImportError, ModuleNotFoundError):
+        from mcp.server.mcpserver import MCPServer as FastMCP
+
+    server = FastMCP("intent-fabric")
+    tools_instance = tools or IntentFabricMCPTools()
+
+    @server.tool(name="health_check")
+    def health_check() -> dict[str, object]:
+        """Check server health and return active planner, policy rules count, and schema version."""
+        return tools_instance.health_check()
+
+    @server.tool(name="create_plan_from_evidence")
+    def create_plan_from_evidence(
+        intent_request: dict[str, object],
+        evidence_package: dict[str, object],
+    ) -> dict[str, Any]:
+        """Generate a deterministic multi-step plan grounded in provided evidence citations."""
+        return tools_instance.create_plan_from_evidence(
+            intent_request=intent_request,
+            evidence_package=evidence_package,
+        )
+
+    @server.tool(name="validate_plan")
+    def validate_plan(plan: dict[str, object]) -> dict[str, Any]:
+        """Evaluate plan steps against active policy rules and return a policy decision (allow/requires_approval/deny)."""
+        return tools_instance.validate_plan(plan=plan)
+
+    @server.tool(name="create_approval_package")
+    def create_approval_package(
+        plan: dict[str, object],
+        policy_decision: dict[str, object],
+        requested_by: str = "system",
+    ) -> dict[str, Any]:
+        """Assemble a tamper-evident approval request payload for human sign-off."""
+        return tools_instance.create_approval_package(
+            plan=plan,
+            policy_decision=policy_decision,
+            requested_by=requested_by,
+        )
+
+    @server.tool(name="simulate_plan")
+    def simulate_plan(
+        plan: dict[str, object],
+        policy_decision: dict[str, object] | None = None,
+    ) -> dict[str, Any]:
+        """Simulate plan execution with zero external side effects and record step state traces."""
+        return tools_instance.simulate_plan(plan=plan, policy_decision=policy_decision)
+
+    @server.tool(name="sign_approval")
+    def sign_approval(
+        approval_id: str,
+        plan_id: str,
+        step_ids: list[str],
+        decision: str = "approved",
+        reviewer: str = "system",
+        timestamp: str | None = None,
+        secret_key: str | None = None,
+    ) -> dict[str, Any]:
+        """Cryptographically sign a human approval decision using an HMAC-SHA256 non-repudiation token."""
+        return tools_instance.sign_approval(
+            approval_id=approval_id,
+            plan_id=plan_id,
+            step_ids=step_ids,
+            decision=decision,
+            reviewer=reviewer,
+            timestamp=timestamp,
+            secret_key=secret_key,
+        )
+
+    return server
+
+
+def run_mcp_server() -> None:
+    """Run the Intent Fabric MCP server using stdio transport."""
+    server = create_mcp_server()
+    server.run()

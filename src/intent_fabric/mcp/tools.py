@@ -5,7 +5,8 @@ from __future__ import annotations
 from typing import Any
 
 from intent_fabric.approvals import ApprovalPackageGenerator
-from intent_fabric.mcp.schema import envelope, unwrap_payload
+from intent_fabric.approvals.signing import SignedApprovalToken, compute_approval_signature
+from intent_fabric.mcp.schema import MCP_SCHEMA_VERSION, envelope, unwrap_payload
 from intent_fabric.policies import PolicyEngine
 from intent_fabric.planning import RuleBasedPlanner, build_planner
 from intent_fabric.serde import (
@@ -33,6 +34,19 @@ class IntentFabricMCPTools:
         self._policy_engine = policy_engine or PolicyEngine()
         self._approval_generator = approval_generator or ApprovalPackageGenerator()
         self._simulator = simulator or SimulationExecutor()
+
+    def health_check(self) -> dict[str, Any]:
+        planner_name = type(self._planner).__name__
+        rules_count = len(getattr(getattr(self._policy_engine, "_loader", None), "rules", [])) if hasattr(self._policy_engine, "_loader") else 0
+        return envelope(
+            tool="health_check",
+            payload={
+                "status": "healthy",
+                "planner": planner_name,
+                "policy_rules_count": rules_count,
+                "schema_version": MCP_SCHEMA_VERSION,
+            },
+        )
 
     def create_plan_from_evidence(
         self,
@@ -76,3 +90,56 @@ class IntentFabricMCPTools:
             parsed_decision = parse_policy_decision(unwrap_payload(policy_decision))  # type: ignore[arg-type]
         result = self._simulator.simulate(plan=parsed_plan, decision=parsed_decision)
         return envelope(tool="simulate_plan", payload=to_dict(result))
+
+    def sign_approval(
+        self,
+        approval_id: str,
+        plan_id: str,
+        step_ids: list[str],
+        decision: str = "approved",
+        reviewer: str = "system",
+        timestamp: str | None = None,
+        secret_key: str | None = None,
+    ) -> dict[str, Any]:
+        kwargs: dict[str, Any] = {
+            "approval_id": approval_id,
+            "plan_id": plan_id,
+            "step_ids": step_ids,
+            "decision": decision,
+            "reviewer": reviewer,
+        }
+        if timestamp:
+            kwargs["timestamp"] = timestamp
+        token = SignedApprovalToken(**kwargs)
+        if secret_key:
+            token = SignedApprovalToken(
+                approval_id=token.approval_id,
+                plan_id=token.plan_id,
+                step_ids=token.step_ids,
+                decision=token.decision,
+                reviewer=token.reviewer,
+                timestamp=token.timestamp,
+                signature=compute_approval_signature(
+                    approval_id=token.approval_id,
+                    plan_id=token.plan_id,
+                    step_ids=token.step_ids,
+                    decision=token.decision,
+                    reviewer=token.reviewer,
+                    timestamp=token.timestamp,
+                    secret_key=secret_key,
+                ),
+            )
+        return envelope(
+            tool="sign_approval",
+            payload={
+                "approval_id": token.approval_id,
+                "plan_id": token.plan_id,
+                "step_ids": token.step_ids,
+                "decision": token.decision,
+                "reviewer": token.reviewer,
+                "timestamp": token.timestamp,
+                "signature": token.signature,
+                "algorithm": token.algorithm,
+            },
+        )
+
