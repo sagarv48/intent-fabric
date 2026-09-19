@@ -90,3 +90,8 @@ def run_mcp_server() -> None:
     """Run the Intent Fabric MCP server using stdio transport."""
     server = create_mcp_server()
     server.run()
+
+
+if __name__ == "__main__":
+    run_mcp_server()
+

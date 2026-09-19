@@ -29,6 +29,7 @@ class EvidenceItemReference:
     snippet: str
     score: float
     metadata: dict[str, object] = field(default_factory=dict)
+    provenance_hash: str = ""
 
 
 @dataclass(slots=True)
@@ -36,6 +37,9 @@ class EvidencePackageReference:
     query_text: str
     items: list[EvidenceItemReference] = field(default_factory=list)
     retrieval_summary: dict[str, object] = field(default_factory=dict)
+    provenance_digest: str = ""
+    query_fingerprint: str = ""
+    generated_at: str = ""
 
 
 @dataclass(slots=True)

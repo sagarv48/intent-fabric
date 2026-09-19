@@ -1,0 +1,16 @@
+{
+  "mcpServers": {
+    "intent-fabric": {
+      "command": "C:\\Users\\vinay\\.local\\bin\\uv.exe",
+      "args": [
+        "--directory",
+        "C:\\Users\\vinay\\dev\\code\\intent-fabric",
+        "run",
+        "intent-fabric-mcp"
+      ],
+      "env": {
+        "PYTHONPATH": "src"
+      }
+    }
+  }
+}

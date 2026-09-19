@@ -41,6 +41,7 @@ def parse_evidence_package_reference(payload: dict[str, object]) -> EvidencePack
             snippet=str(item["snippet"]),
             score=float(item["score"]),
             metadata=dict(item.get("metadata", {})),  # type: ignore[arg-type]
+            provenance_hash=str(item.get("provenance_hash", "")),
         )
         for item in raw_items  # type: ignore[assignment]
     ]
@@ -48,6 +49,9 @@ def parse_evidence_package_reference(payload: dict[str, object]) -> EvidencePack
         query_text=str(payload.get("query_text", "")),
         items=items,
         retrieval_summary=dict(payload.get("retrieval_summary", {})),  # type: ignore[arg-type]
+        provenance_digest=str(payload.get("provenance_digest", "")),
+        query_fingerprint=str(payload.get("query_fingerprint", "")),
+        generated_at=str(payload.get("generated_at", "")),
     )
 
 
