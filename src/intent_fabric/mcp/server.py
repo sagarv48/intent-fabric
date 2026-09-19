@@ -83,7 +83,57 @@ def create_mcp_server(tools: IntentFabricMCPTools | None = None) -> Any:
             secret_key=secret_key,
         )
 
+    @server.tool(name="evaluate_intent")
+    def evaluate_intent(
+        intent_goal: str,
+        evidence_package: dict[str, Any],
+        max_age_seconds: float = 60.0,
+    ) -> dict[str, Any]:
+        """Verify evidence cryptographic provenance and evaluate policy boundaries for an intent.
+
+        Args:
+            intent_goal: The proposed action or goal.
+            evidence_package: The full EvidencePackage dictionary from Knowledge Fabric.
+            max_age_seconds: Maximum allowed age of the evidence in seconds (default: 60).
+
+        Returns:
+            JSON response with authorization status and signed execution token if allowed.
+        """
+        return tools_instance.evaluate_intent(
+            intent_goal=intent_goal,
+            evidence_package=evidence_package,
+            max_age_seconds=max_age_seconds,
+        )
+
+    orig_call_tool = getattr(server, "call_tool", None)
+
+    def _call_tool_wrapper(name: str, arguments: dict[str, Any] | None = None, **kwargs: Any) -> Any:
+        args = arguments if arguments is not None else kwargs
+        if hasattr(server, "_tool_manager") and name in getattr(server._tool_manager, "_tools", {}):
+            fn = server._tool_manager._tools[name].fn
+            return fn(**args)
+        if hasattr(server, "tools") and isinstance(server.tools, dict) and name in server.tools:
+            return server.tools[name](**args)
+        if hasattr(server, "_local_tools") and name in server._local_tools:
+            return server._local_tools[name](**args)
+        if orig_call_tool is not None:
+            import asyncio
+            try:
+                loop = asyncio.get_running_loop()
+            except RuntimeError:
+                loop = None
+            if loop and loop.is_running():
+                return orig_call_tool(name, args)
+            return asyncio.run(orig_call_tool(name, args))
+        raise KeyError(f"Tool '{name}' not found on MCP server")
+
+    server.call_tool = _call_tool_wrapper
+
     return server
+
+
+# Module-level default MCP instance
+mcp = create_mcp_server()
 
 
 def run_mcp_server() -> None:
@@ -94,4 +144,5 @@ def run_mcp_server() -> None:
 
 if __name__ == "__main__":
     run_mcp_server()
+
 

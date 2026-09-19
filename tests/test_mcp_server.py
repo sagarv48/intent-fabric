@@ -36,11 +36,13 @@ def test_create_mcp_server_registers_expected_tools(monkeypatch) -> None:
     assert sorted(server.tool_names) == [
         "create_approval_package",
         "create_plan_from_evidence",
+        "evaluate_intent",
         "health_check",
         "sign_approval",
         "simulate_plan",
         "validate_plan",
     ]
+
 
 
 def test_mcp_server_tools_execute_end_to_end(monkeypatch) -> None:
@@ -109,3 +111,23 @@ def test_mcp_server_tools_execute_end_to_end(monkeypatch) -> None:
     sim_envelope = tools["simulate_plan"](plan=plan_envelope, policy_decision=decision_envelope)
     assert sim_envelope["tool"] == "simulate_plan"
     assert sim_envelope["payload"]["no_external_side_effects"] is True
+
+    # 7. Evaluate intent
+    from datetime import datetime, timezone
+    from intent_fabric.contracts.evidence_verifier import compute_chunk_hash, compute_package_digest
+    uri = "docs/policy.md"
+    content = "Standard access permitted"
+    c_hash = compute_chunk_hash(uri, content)
+    eval_res = tools["evaluate_intent"](
+        intent_goal="Read non-confidential docs",
+        evidence_package={
+            "retrieval_id": "ret_mcp_test_1",
+            "tenant_id": "tenant_1",
+            "timestamp_utc": datetime.now(timezone.utc).isoformat(),
+            "chunks": [{"chunk_id": "c1", "content": content, "source_uri": uri, "provenance_hash": c_hash}],
+            "provenance_digest": compute_package_digest([c_hash]),
+        },
+    )
+    assert eval_res["is_authorized"] is True
+    assert eval_res["execution_token"] is not None
+

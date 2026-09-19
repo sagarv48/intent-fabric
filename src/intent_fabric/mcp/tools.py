@@ -5,9 +5,13 @@ from __future__ import annotations
 from typing import Any
 
 from intent_fabric.approvals import ApprovalPackageGenerator
-from intent_fabric.approvals.signing import SignedApprovalToken, compute_approval_signature
+from intent_fabric.approvals.signing import (
+    SignedApprovalToken,
+    TokenSigner,
+    compute_approval_signature,
+)
 from intent_fabric.mcp.schema import MCP_SCHEMA_VERSION, envelope, unwrap_payload
-from intent_fabric.policies import PolicyEngine
+from intent_fabric.policies import GovernedExecutionResult, GovernedPolicyExecutor, PolicyEngine
 from intent_fabric.planning import RuleBasedPlanner, build_planner
 from intent_fabric.serde import (
     parse_evidence_package_reference,
@@ -29,11 +33,21 @@ class IntentFabricMCPTools:
         policy_engine: PolicyEngine | None = None,
         approval_generator: ApprovalPackageGenerator | None = None,
         simulator: SimulationExecutor | None = None,
+        governed_executor: GovernedPolicyExecutor | None = None,
     ) -> None:
         self._planner = planner or build_planner() or RuleBasedPlanner()
         self._policy_engine = policy_engine or PolicyEngine()
         self._approval_generator = approval_generator or ApprovalPackageGenerator()
         self._simulator = simulator or SimulationExecutor()
+        self._governed_executor = (
+            governed_executor
+            or GovernedPolicyExecutor(
+                policy_engine=self._policy_engine,
+                planner=self._planner,
+                signer=TokenSigner(),
+            )
+        )
+
 
     def health_check(self) -> dict[str, Any]:
         planner_name = type(self._planner).__name__
@@ -142,4 +156,64 @@ class IntentFabricMCPTools:
                 "algorithm": token.algorithm,
             },
         )
+
+    def evaluate_intent(
+        self,
+        intent_goal: str,
+        evidence_package: dict[str, Any],
+        max_age_seconds: float = 60.0,
+    ) -> dict[str, Any]:
+        """Evaluates an agent intent goal against cryptographically verified evidence."""
+        return evaluate_governed_intent(
+            executor=self._governed_executor,
+            intent_goal=intent_goal,
+            evidence_package=evidence_package,
+            max_age_seconds=max_age_seconds,
+        )
+
+
+def evaluate_governed_intent(
+    executor: GovernedPolicyExecutor,
+    intent_goal: str,
+    evidence_package: dict[str, Any],
+    max_age_seconds: float = 60.0,
+) -> dict[str, Any]:
+    """Evaluates an agent intent goal against cryptographically verified evidence.
+
+    Returns a deterministic dictionary response containing authorization status,
+    policy decision details, and the signed execution token if authorized.
+    """
+    result: GovernedExecutionResult = executor.execute(
+        intent_goal=intent_goal,
+        evidence_package=evidence_package,
+        max_age_seconds=max_age_seconds,
+    )
+
+    token_payload = None
+    if result.execution_token:
+        token_payload = {
+            "token_str": getattr(result.execution_token, "token_str", str(result.execution_token)),
+            "plan_id": getattr(result.execution_token, "plan_id", None),
+            "provenance_digest": getattr(result.execution_token, "provenance_digest", None),
+        }
+
+    dec_val = "DENY"
+    reason = None
+    if result.decision:
+        raw_dec = getattr(result.decision, "decision_type", None) or getattr(result.decision, "decision", None)
+        dec_val = raw_dec.value if hasattr(raw_dec, "value") else str(raw_dec)
+        reason = getattr(result.decision, "reason", None) or (
+            result.decision.reasons[0] if getattr(result.decision, "reasons", None) else None
+        )
+
+    return {
+        "is_authorized": result.is_authorized,
+        "decision_type": dec_val,
+        "reason": reason,
+        "rejection_reasons": result.rejection_reasons,
+        "execution_token": token_payload,
+        "plan_id": result.plan.plan_id if result.plan else None,
+        "verified_at": result.verification.verified_at.isoformat() if result.verification else None,
+    }
+
 
