@@ -5,6 +5,7 @@ from intent_fabric.contracts.evidence_verifier import (
     compute_chunk_hash,
     compute_package_digest,
     verify_evidence,
+    verify_evidence_package,
 )
 from intent_fabric.contracts.schema import action_contract_schema
 
@@ -14,4 +15,6 @@ __all__ = [
     "compute_chunk_hash",
     "compute_package_digest",
     "verify_evidence",
+    "verify_evidence_package",
 ]
+

@@ -136,8 +136,13 @@ def test_empty_items_passes():
 
 
 def test_hash_algorithm_matches_knowledge_fabric():
-    """Verify hash formula matches Knowledge Fabric: SHA-256(uri + ':' + snippet)."""
+    """Verify hash formula uses canonical JSON: SHA-256(json.dumps([uri, snippet]))."""
+    import json
+
     uri = "docs/test.md"
     snippet = "test content"
-    expected = hashlib.sha256(f"{uri}:{snippet}".encode("utf-8")).hexdigest()
+    expected = hashlib.sha256(
+        json.dumps([uri, snippet], separators=(",", ":"), ensure_ascii=False).encode("utf-8")
+    ).hexdigest()
     assert compute_chunk_hash(uri, snippet) == expected
+
