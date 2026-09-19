@@ -3,6 +3,8 @@
 from intent_fabric.approvals.generator import ApprovalPackageGenerator
 from intent_fabric.approvals.signing import (
     SignedApprovalToken,
+    SignedExecutionToken,
+    TokenSigner,
     compute_approval_signature,
     verify_approval_signature,
 )
@@ -10,6 +12,9 @@ from intent_fabric.approvals.signing import (
 __all__ = [
     "ApprovalPackageGenerator",
     "SignedApprovalToken",
+    "SignedExecutionToken",
+    "TokenSigner",
     "compute_approval_signature",
     "verify_approval_signature",
 ]
+

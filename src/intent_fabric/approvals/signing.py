@@ -126,3 +126,61 @@ class SignedApprovalToken:
             signature=self.signature,
             secret_key=secret_key,
         )
+
+
+@dataclass(slots=True)
+class SignedExecutionToken:
+    """Tamper-evident token authorizing execution of a governed plan."""
+
+    plan_id: str
+    provenance_digest: str
+    tenant_id: str
+    timestamp: str = field(default_factory=lambda: datetime.now(UTC).isoformat())
+    signature: str = ""
+    algorithm: str = "HMAC-SHA256"
+    token_str: str = ""
+
+    def __post_init__(self) -> None:
+        if not self.signature:
+            key_bytes = get_signing_key()
+            canonical = f"{self.plan_id}|{self.provenance_digest}|{self.tenant_id}|{self.timestamp}".encode("utf-8")
+            self.signature = hmac.new(key_bytes, canonical, hashlib.sha256).hexdigest()
+        if not self.token_str:
+            self.token_str = f"token.{self.plan_id}.{self.signature[:16]}"
+
+
+class TokenSigner:
+    """Signs execution authorization tokens with HMAC-SHA256."""
+
+    def __init__(self, secret_key: str | None = None) -> None:
+        self.secret_key = secret_key
+
+    def sign_execution(
+        self,
+        plan_id: str,
+        provenance_digest: str,
+        tenant_id: str,
+    ) -> SignedExecutionToken:
+        key_bytes = get_signing_key(self.secret_key)
+        ts = datetime.now(UTC).isoformat()
+        canonical = f"{plan_id}|{provenance_digest}|{tenant_id}|{ts}".encode("utf-8")
+        sig = hmac.new(key_bytes, canonical, hashlib.sha256).hexdigest()
+        token_str = f"token.{plan_id}.{sig[:16]}"
+        return SignedExecutionToken(
+            plan_id=plan_id,
+            provenance_digest=provenance_digest,
+            tenant_id=tenant_id,
+            timestamp=ts,
+            signature=sig,
+            algorithm="HMAC-SHA256",
+            token_str=token_str,
+        )
+
+    def verify_execution(self, token: SignedExecutionToken) -> bool:
+        if not token or not token.signature:
+            return False
+        key_bytes = get_signing_key(self.secret_key)
+        canonical = f"{token.plan_id}|{token.provenance_digest}|{token.tenant_id}|{token.timestamp}".encode("utf-8")
+        expected = hmac.new(key_bytes, canonical, hashlib.sha256).hexdigest()
+        return hmac.compare_digest(expected, token.signature)
+

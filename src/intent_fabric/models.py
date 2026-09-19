@@ -75,11 +75,25 @@ class Plan:
 
 @dataclass(slots=True)
 class PolicyDecision:
-    plan_id: str
-    decision: PolicyDecisionType
+    plan_id: str = ""
+    decision: PolicyDecisionType = PolicyDecisionType.DENY
     reasons: list[str] = field(default_factory=list)
     requires_approval: bool = False
     metadata: dict[str, object] = field(default_factory=dict)
+    decision_type: PolicyDecisionType | None = None
+    reason: str | None = None
+
+    def __post_init__(self) -> None:
+        if self.decision_type is not None:
+            self.decision = self.decision_type
+        else:
+            self.decision_type = self.decision
+
+        if self.reason is not None and not self.reasons:
+            self.reasons = [self.reason]
+        elif self.reasons and self.reason is None:
+            self.reason = self.reasons[0]
+
 
 
 @dataclass(slots=True)
